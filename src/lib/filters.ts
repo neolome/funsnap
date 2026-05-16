@@ -1,6 +1,7 @@
 import { getEmojiImage } from "./twemoji";
 
 export type FilterCategory =
+  | "cambodge"
   | "animaux"
   | "chapeaux"
   | "lunettes"
@@ -55,6 +56,7 @@ export type Filter = {
 };
 
 export const CATEGORIES: { id: FilterCategory; label: string; emoji: string }[] = [
+  { id: "cambodge", label: "Cambodge", emoji: "🇰🇭" },
   { id: "animaux", label: "Animaux", emoji: "🐶" },
   { id: "chapeaux", label: "Chapeaux", emoji: "👑" },
   { id: "lunettes", label: "Lunettes", emoji: "😎" },
@@ -761,9 +763,607 @@ function matrixEffect(): Filter["render"] {
   };
 }
 
+// --- CAMBODGE — drawn cultural pieces 🇰🇭 ---
+
+/** Apsara/royal crown: 5 gold spires (Mokot), tallest in middle, lotus-bud tips. */
+function drawMokotCrown(ctx: CanvasRenderingContext2D, f: FaceFrame) {
+  ctx.save();
+  const base = above(f, f.faceHeight * 0.0);
+  ctx.translate(base.x, base.y);
+  ctx.rotate(f.angle);
+
+  const goldStops = (g: CanvasGradient) => {
+    g.addColorStop(0, "#fff4b8");
+    g.addColorStop(0.35, "#ffd34a");
+    g.addColorStop(0.75, "#b07000");
+    g.addColorStop(1, "#5a3500");
+  };
+
+  // Headband at the base (red with gold trim)
+  const bandW = f.headWidth * 1.0;
+  const bandH = f.faceHeight * 0.12;
+  ctx.fillStyle = "#8a1f1f";
+  ctx.fillRect(-bandW / 2, -bandH * 0.4, bandW, bandH);
+  // Gold trim top/bottom
+  ctx.fillStyle = "#ffce4a";
+  ctx.fillRect(-bandW / 2, -bandH * 0.4, bandW, bandH * 0.15);
+  ctx.fillRect(-bandW / 2, bandH * 0.45, bandW, bandH * 0.15);
+
+  // 5 spires: tallest in middle, smaller outward
+  const spires = [
+    { x: -2, scale: 0.55 },
+    { x: -1, scale: 0.78 },
+    { x: 0, scale: 1.0 },
+    { x: 1, scale: 0.78 },
+    { x: 2, scale: 0.55 },
+  ];
+  for (const s of spires) {
+    const xPos = s.x * f.faceWidth * 0.16;
+    const h = f.faceHeight * 0.7 * s.scale;
+    const w = f.faceWidth * 0.09 * s.scale;
+    const baseY = -bandH * 0.4;
+
+    // Spire body
+    const grad = ctx.createLinearGradient(0, baseY - h, 0, baseY);
+    goldStops(grad);
+    ctx.fillStyle = grad;
+    ctx.beginPath();
+    ctx.moveTo(xPos - w, baseY);
+    ctx.lineTo(xPos + w, baseY);
+    ctx.lineTo(xPos + w * 0.55, baseY - h * 0.55);
+    ctx.lineTo(xPos + w * 0.25, baseY - h * 0.75);
+    // lotus-bud bulge
+    ctx.bezierCurveTo(
+      xPos + w * 0.55, baseY - h * 0.85,
+      xPos + w * 0.35, baseY - h * 1.0,
+      xPos, baseY - h,
+    );
+    ctx.bezierCurveTo(
+      xPos - w * 0.35, baseY - h * 1.0,
+      xPos - w * 0.55, baseY - h * 0.85,
+      xPos - w * 0.25, baseY - h * 0.75,
+    );
+    ctx.lineTo(xPos - w * 0.55, baseY - h * 0.55);
+    ctx.closePath();
+    ctx.fill();
+    // Dark outline
+    ctx.strokeStyle = "rgba(80, 50, 0, 0.6)";
+    ctx.lineWidth = Math.max(1, f.faceWidth * 0.004);
+    ctx.stroke();
+    // Jewel
+    ctx.fillStyle = "#c8181a";
+    ctx.beginPath();
+    ctx.arc(xPos, baseY - h * 0.4, w * 0.18, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = "rgba(255,200,200,0.7)";
+    ctx.beginPath();
+    ctx.arc(xPos - w * 0.05, baseY - h * 0.42, w * 0.07, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.restore();
+}
+
+/** Angkor Wat: 3 visible lotus-bud towers in quincunx (central tallest). */
+function drawAngkorTower(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number) {
+  ctx.beginPath();
+  // base
+  ctx.moveTo(x - w / 2, y);
+  ctx.lineTo(x - w / 2, y - h * 0.5);
+  // First tier inset
+  ctx.lineTo(x - w * 0.4, y - h * 0.55);
+  ctx.lineTo(x - w * 0.4, y - h * 0.7);
+  ctx.lineTo(x - w * 0.3, y - h * 0.75);
+  // bulb up to top
+  ctx.bezierCurveTo(
+    x - w * 0.3, y - h * 0.92,
+    x - w * 0.15, y - h,
+    x, y - h,
+  );
+  ctx.bezierCurveTo(
+    x + w * 0.15, y - h,
+    x + w * 0.3, y - h * 0.92,
+    x + w * 0.3, y - h * 0.75,
+  );
+  ctx.lineTo(x + w * 0.4, y - h * 0.7);
+  ctx.lineTo(x + w * 0.4, y - h * 0.55);
+  ctx.lineTo(x + w / 2, y - h * 0.5);
+  ctx.lineTo(x + w / 2, y);
+  ctx.closePath();
+  ctx.fill();
+  ctx.stroke();
+}
+
+function drawAngkorWatCrown(ctx: CanvasRenderingContext2D, f: FaceFrame) {
+  ctx.save();
+  const base = above(f, f.faceHeight * 0.02);
+  ctx.translate(base.x, base.y);
+  ctx.rotate(f.angle);
+  // Sandstone gradient
+  const grad = ctx.createLinearGradient(0, -f.faceHeight * 0.7, 0, 0);
+  grad.addColorStop(0, "#e8cf8d");
+  grad.addColorStop(0.6, "#a07a3b");
+  grad.addColorStop(1, "#4f3414");
+  ctx.fillStyle = grad;
+  ctx.strokeStyle = "rgba(60, 35, 5, 0.55)";
+  ctx.lineWidth = Math.max(1, f.faceWidth * 0.004);
+  // Side towers
+  drawAngkorTower(ctx, -f.faceWidth * 0.34, 0, f.faceWidth * 0.16, f.faceHeight * 0.48);
+  drawAngkorTower(ctx, f.faceWidth * 0.34, 0, f.faceWidth * 0.16, f.faceHeight * 0.48);
+  // Central tower (largest)
+  drawAngkorTower(ctx, 0, 0, f.faceWidth * 0.22, f.faceHeight * 0.72);
+  ctx.restore();
+}
+
+/** Bayon stone face effect: heavy stone tint + carved smile lines. */
+function drawBayonEffect(ctx: CanvasRenderingContext2D, w: number, h: number, f: FaceFrame | null) {
+  const off = document.createElement("canvas");
+  off.width = w;
+  off.height = h;
+  const octx = off.getContext("2d");
+  if (!octx) return;
+  octx.drawImage(ctx.canvas, 0, 0);
+  ctx.filter = "grayscale(0.9) sepia(0.35) contrast(1.5) brightness(0.78)";
+  ctx.drawImage(off, 0, 0);
+  ctx.filter = "none";
+  // Greenish moss tint
+  ctx.save();
+  ctx.globalCompositeOperation = "multiply";
+  ctx.fillStyle = "rgba(120, 130, 100, 0.15)";
+  ctx.fillRect(0, 0, w, h);
+  ctx.restore();
+  if (!f) return;
+  // Stylized Bayon serene smile curve at mouth
+  ctx.save();
+  ctx.strokeStyle = "rgba(40, 30, 15, 0.45)";
+  ctx.lineWidth = Math.max(2, f.faceWidth * 0.012);
+  ctx.lineCap = "round";
+  ctx.beginPath();
+  const ml = f.mouthLeft;
+  const mr = f.mouthRight;
+  const mc = f.mouthCenter;
+  ctx.moveTo(ml.x - f.faceWidth * 0.03, ml.y);
+  ctx.quadraticCurveTo(mc.x, mc.y + f.faceHeight * 0.05, mr.x + f.faceWidth * 0.03, mr.y);
+  ctx.stroke();
+  ctx.restore();
+}
+
+/** A single lotus flower with 8 petals. */
+function drawLotusFlower(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  size: number,
+  rotation = 0,
+) {
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.rotate(rotation);
+  const petals = 8;
+  for (let i = 0; i < petals; i++) {
+    ctx.save();
+    ctx.rotate((i / petals) * Math.PI * 2);
+    const grad = ctx.createLinearGradient(0, -size * 0.55, 0, 0);
+    grad.addColorStop(0, "#ffffff");
+    grad.addColorStop(0.3, "#ffc8d8");
+    grad.addColorStop(1, "#ff5e8a");
+    ctx.fillStyle = grad;
+    ctx.beginPath();
+    ctx.ellipse(0, -size * 0.32, size * 0.18, size * 0.45, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = "rgba(180, 30, 80, 0.45)";
+    ctx.lineWidth = Math.max(1, size * 0.02);
+    ctx.stroke();
+    ctx.restore();
+  }
+  // Yellow center
+  ctx.fillStyle = "#ffe366";
+  ctx.beginPath();
+  ctx.arc(0, 0, size * 0.16, 0, Math.PI * 2);
+  ctx.fill();
+  // stamen dots
+  ctx.fillStyle = "#b07a00";
+  for (let i = 0; i < 7; i++) {
+    const a = (i / 7) * Math.PI * 2;
+    ctx.beginPath();
+    ctx.arc(Math.cos(a) * size * 0.09, Math.sin(a) * size * 0.09, size * 0.03, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.restore();
+}
+
+function drawLotusHalo(ctx: CanvasRenderingContext2D, f: FaceFrame) {
+  const count = 9;
+  for (let i = 0; i < count; i++) {
+    const t = (i / (count - 1)) - 0.5; // -0.5..0.5
+    // arc above the head spanning 180°
+    const arcAngle = -Math.PI / 2 + t * Math.PI * 0.9;
+    const r = f.headWidth * 0.75;
+    const x = f.center.x + Math.cos(arcAngle) * r;
+    const y = f.center.y + Math.sin(arcAngle) * r * 1.1;
+    // skip the one directly behind the face if it would overlap the face
+    if (Math.abs(t) < 0.08) continue;
+    drawLotusFlower(ctx, x, y, f.faceWidth * 0.14, t * 0.4 + f.angle);
+  }
+}
+
+/** Krama: traditional red & white checkered headscarf wrapping the forehead. */
+function drawKrama(ctx: CanvasRenderingContext2D, f: FaceFrame) {
+  ctx.save();
+  ctx.translate(f.forehead.x, f.forehead.y - f.faceHeight * 0.04);
+  ctx.rotate(f.angle);
+
+  const w = f.headWidth * 1.15;
+  const h = f.faceHeight * 0.2;
+
+  // Background red
+  ctx.fillStyle = "#b51e21";
+  ctx.beginPath();
+  ctx.moveTo(-w / 2, -h / 2);
+  ctx.lineTo(w / 2, -h / 2);
+  ctx.lineTo(w / 2 + h * 0.1, h / 2);
+  ctx.lineTo(-w / 2 - h * 0.1, h / 2);
+  ctx.closePath();
+  ctx.fill();
+
+  // Checker pattern — clip to band shape
+  ctx.save();
+  ctx.clip();
+  const sq = h / 3.5;
+  ctx.fillStyle = "rgba(255, 250, 240, 0.95)";
+  for (let x = -w / 2 - sq; x < w / 2 + sq; x += sq * 2) {
+    for (let y = -h / 2 - sq; y < h / 2 + sq; y += sq * 2) {
+      ctx.fillRect(x + sq, y, sq, sq);
+      ctx.fillRect(x, y + sq, sq, sq);
+    }
+  }
+  ctx.restore();
+
+  // Top/bottom dark stripe edges
+  ctx.fillStyle = "rgba(0, 0, 0, 0.25)";
+  ctx.fillRect(-w / 2, -h / 2, w, h * 0.06);
+  ctx.fillRect(-w / 2, h / 2 - h * 0.06, w, h * 0.06);
+
+  // Fringe (knotted ends) on right side
+  ctx.strokeStyle = "#f5e8d0";
+  ctx.lineWidth = Math.max(1.5, f.faceWidth * 0.006);
+  for (let i = 0; i < 9; i++) {
+    ctx.beginPath();
+    ctx.moveTo(w / 2 + i * 1.5, -h / 2 + (i / 9) * h);
+    ctx.quadraticCurveTo(
+      w / 2 + 18 + Math.sin(i * 1.3) * 6,
+      (i / 9) * h - h * 0.3,
+      w / 2 + 30 + Math.cos(i * 2) * 8,
+      h * 0.5 + 6 + (i % 2) * 4,
+    );
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
+/** Radiant gold Buddha halo behind the head with sun rays. */
+function drawBuddhaHalo(ctx: CanvasRenderingContext2D, f: FaceFrame, time: number) {
+  ctx.save();
+  const cx = f.center.x;
+  const cy = f.center.y - f.faceHeight * 0.08;
+  const innerR = f.headWidth * 0.6;
+  const outerR = f.headWidth * 1.05;
+  const rays = 22;
+  const rot = (time / 8000) % (Math.PI * 2);
+
+  // Sun-ray polygon (zig-zag between inner and outer radius)
+  ctx.fillStyle = "rgba(255, 196, 60, 0.85)";
+  ctx.shadowColor = "#ffae00";
+  ctx.shadowBlur = 35;
+  ctx.beginPath();
+  for (let i = 0; i < rays * 2; i++) {
+    const a = (i / (rays * 2)) * Math.PI * 2 + rot;
+    const r = i % 2 === 0 ? outerR : innerR;
+    const x = cx + Math.cos(a) * r;
+    const y = cy + Math.sin(a) * r;
+    if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+  }
+  ctx.closePath();
+  ctx.fill();
+
+  // Inner ring
+  ctx.shadowBlur = 0;
+  ctx.fillStyle = "rgba(255, 230, 130, 0.5)";
+  ctx.beginPath();
+  ctx.arc(cx, cy, innerR * 0.92, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+}
+
+/** Garuda wings: gold/red mythological wings spreading from sides of head. */
+function drawGarudaWings(ctx: CanvasRenderingContext2D, f: FaceFrame) {
+  for (const side of [-1, 1] as const) {
+    ctx.save();
+    const base = {
+      x: f.center.x + f.right.x * side * f.headWidth * 0.42,
+      y: f.center.y + f.right.y * side * f.headWidth * 0.42,
+    };
+    ctx.translate(base.x, base.y);
+    ctx.rotate(f.angle + side * 0.25);
+
+    const wingW = f.headWidth * 0.85;
+    const wingH = f.headHeight * 0.7;
+
+    // Outer red feathered shape
+    const grad = ctx.createLinearGradient(0, 0, side * wingW, 0);
+    grad.addColorStop(0, "#7a0c0c");
+    grad.addColorStop(0.6, "#c8181a");
+    grad.addColorStop(1, "#ff7a3a");
+    ctx.fillStyle = grad;
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+    ctx.bezierCurveTo(side * wingW * 0.3, -wingH * 0.55, side * wingW * 0.85, -wingH * 0.4, side * wingW, -wingH * 0.05);
+    ctx.bezierCurveTo(side * wingW * 0.75, wingH * 0.3, side * wingW * 0.35, wingH * 0.45, 0, wingH * 0.2);
+    ctx.closePath();
+    ctx.fill();
+
+    // Gold feather lines
+    ctx.strokeStyle = "rgba(255, 230, 100, 0.85)";
+    ctx.lineWidth = Math.max(1.5, f.faceWidth * 0.008);
+    ctx.lineCap = "round";
+    for (let i = 1; i <= 6; i++) {
+      const t = i / 7;
+      ctx.beginPath();
+      ctx.moveTo(side * wingW * 0.08, wingH * 0.05);
+      ctx.quadraticCurveTo(
+        side * wingW * t * 0.6,
+        -wingH * 0.35 + t * wingH * 0.5,
+        side * wingW * t,
+        -wingH * 0.05 + t * wingH * 0.25,
+      );
+      ctx.stroke();
+    }
+
+    // Small gold rosettes
+    ctx.fillStyle = "#ffd34a";
+    for (let i = 0; i < 4; i++) {
+      const t = (i + 1) / 5;
+      const fx = side * wingW * t * 0.7;
+      const fy = -wingH * 0.05 + Math.sin(t * Math.PI) * wingH * 0.1;
+      ctx.beginPath();
+      ctx.arc(fx, fy, wingW * 0.03, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    ctx.restore();
+  }
+}
+
+/** Naga: 7-headed serpent crown arching over the head. */
+function drawNagaCrown(ctx: CanvasRenderingContext2D, f: FaceFrame) {
+  const headCount = 7;
+  // Body arc (one solid green band across the top)
+  ctx.save();
+  ctx.strokeStyle = "#2e7a3e";
+  ctx.lineCap = "round";
+  ctx.lineWidth = f.faceWidth * 0.1;
+  const arcR = f.headWidth * 0.65;
+  ctx.beginPath();
+  const startA = Math.PI;
+  const endA = 0;
+  const steps = 30;
+  for (let i = 0; i <= steps; i++) {
+    const t = i / steps;
+    const a = startA + (endA - startA) * t;
+    const ux = Math.cos(f.angle);
+    const uy = Math.sin(f.angle);
+    const localX = Math.cos(a) * arcR;
+    const localY = -Math.abs(Math.sin(a)) * arcR * 0.7;
+    const x = f.center.x + localX * ux - localY * uy;
+    const y = f.center.y + localX * uy + localY * ux;
+    if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+  }
+  ctx.stroke();
+  // Inner lighter highlight
+  ctx.strokeStyle = "#5cb86f";
+  ctx.lineWidth = f.faceWidth * 0.04;
+  ctx.stroke();
+  ctx.restore();
+
+  // 7 cobra heads fanning out at the top
+  for (let i = 0; i < headCount; i++) {
+    const t = (i - (headCount - 1) / 2) / ((headCount - 1) / 2); // -1..1
+    const fanAngle = t * (Math.PI * 0.42);
+    const headR = f.headWidth * 0.85;
+    const localX = Math.sin(fanAngle) * headR;
+    const localY = -Math.cos(fanAngle) * headR;
+    const ux = Math.cos(f.angle);
+    const uy = Math.sin(f.angle);
+    const hx = f.center.x + localX * ux - localY * uy;
+    const hy = f.center.y + localX * uy + localY * ux;
+
+    ctx.save();
+    ctx.translate(hx, hy);
+    ctx.rotate(f.angle + fanAngle);
+    // Cobra hood
+    const grad = ctx.createRadialGradient(0, 0, 0, 0, 0, f.faceWidth * 0.13);
+    grad.addColorStop(0, "#7fd393");
+    grad.addColorStop(1, "#2e7a3e");
+    ctx.fillStyle = grad;
+    ctx.beginPath();
+    ctx.ellipse(0, 0, f.faceWidth * 0.07, f.faceWidth * 0.11, 0, 0, Math.PI * 2);
+    ctx.fill();
+    // Eye
+    ctx.fillStyle = "#fff100";
+    ctx.beginPath();
+    ctx.arc(0, -f.faceWidth * 0.025, f.faceWidth * 0.018, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = "#000";
+    ctx.beginPath();
+    ctx.arc(0, -f.faceWidth * 0.025, f.faceWidth * 0.008, 0, Math.PI * 2);
+    ctx.fill();
+    // Tongue
+    ctx.strokeStyle = "#c82626";
+    ctx.lineWidth = Math.max(1, f.faceWidth * 0.006);
+    ctx.beginPath();
+    ctx.moveTo(0, f.faceWidth * 0.08);
+    ctx.lineTo(0, f.faceWidth * 0.12);
+    ctx.stroke();
+    ctx.restore();
+  }
+}
+
+/** Khmer New Year (Chaul Chnam Thmey) — playful white talc powder on cheeks/forehead/nose. */
+function drawKhmerNewYearPowder(ctx: CanvasRenderingContext2D, f: FaceFrame) {
+  const rand = (n: number) => (Math.sin(n * 9999 + 1.3) * 10000) % 1;
+  const positions: { p: Point; spread: number; count: number }[] = [
+    { p: f.leftCheek, spread: 0.25, count: 6 },
+    { p: f.rightCheek, spread: 0.25, count: 6 },
+    { p: f.forehead, spread: 0.3, count: 5 },
+    { p: f.noseTip, spread: 0.12, count: 3 },
+    { p: f.chin, spread: 0.2, count: 4 },
+  ];
+  ctx.save();
+  let seed = 0;
+  for (const { p, spread, count } of positions) {
+    for (let i = 0; i < count; i++) {
+      seed++;
+      const dx = (rand(seed) - 0.5) * f.faceWidth * spread;
+      const dy = (rand(seed + 33) - 0.5) * f.faceWidth * spread;
+      const r = f.faceWidth * (0.04 + rand(seed + 71) * 0.07);
+      ctx.fillStyle = `rgba(255,255,255,${0.55 + rand(seed + 11) * 0.4})`;
+      ctx.beginPath();
+      ctx.arc(p.x + dx, p.y + dy, r, 0, Math.PI * 2);
+      ctx.fill();
+      // satellite splatters
+      for (let k = 0; k < 4; k++) {
+        seed++;
+        const sx = (rand(seed) - 0.5) * r * 4;
+        const sy = (rand(seed + 7) - 0.5) * r * 4;
+        ctx.fillStyle = `rgba(255,255,255,${0.4 + rand(seed + 41) * 0.4})`;
+        ctx.beginPath();
+        ctx.arc(p.x + dx + sx, p.y + dy + sy, r * 0.25, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+  }
+  ctx.restore();
+}
+
+/** Cambodian flag face paint: blue/red/blue horizontal stripes with mini Angkor silhouette. */
+function drawCambodianFlagPaint(ctx: CanvasRenderingContext2D, f: FaceFrame) {
+  ctx.save();
+  ctx.translate(f.center.x, f.center.y);
+  ctx.rotate(f.angle);
+  const totalW = f.headWidth * 0.65;
+  const totalH = f.faceHeight * 0.65;
+  const blueH = totalH * 0.25;
+  const redH = totalH * 0.5;
+  // Top blue
+  ctx.fillStyle = "rgba(3, 39, 138, 0.55)";
+  ctx.fillRect(-totalW / 2, -totalH / 2, totalW, blueH);
+  // Middle red
+  ctx.fillStyle = "rgba(206, 17, 38, 0.6)";
+  ctx.fillRect(-totalW / 2, -totalH / 2 + blueH, totalW, redH);
+  // Bottom blue
+  ctx.fillStyle = "rgba(3, 39, 138, 0.55)";
+  ctx.fillRect(-totalW / 2, totalH / 2 - blueH, totalW, blueH);
+  // White Angkor Wat in middle (simplified 3-tower silhouette)
+  ctx.fillStyle = "rgba(255,255,255,0.85)";
+  const aw = totalW * 0.25;
+  const ah = redH * 0.6;
+  drawAngkorTower(ctx, -aw, ah * 0.5, aw * 0.55, ah * 0.65);
+  drawAngkorTower(ctx, aw, ah * 0.5, aw * 0.55, ah * 0.65);
+  drawAngkorTower(ctx, 0, ah * 0.5, aw * 0.7, ah);
+  ctx.restore();
+}
+
+/** Apsara eye makeup: extended cat-eye liner with pointed corners + bindi-style forehead dot. */
+function drawApsaraMakeup(ctx: CanvasRenderingContext2D, f: FaceFrame) {
+  ctx.save();
+  // Extended eyeliner
+  ctx.strokeStyle = "#0c0c0c";
+  ctx.lineCap = "round";
+  ctx.lineJoin = "round";
+  ctx.lineWidth = Math.max(2.5, f.faceWidth * 0.014);
+  for (const side of [-1, 1] as const) {
+    const eye = side === -1 ? f.leftEye : f.rightEye;
+    const outerDir = { x: f.right.x * side, y: f.right.y * side };
+    const start = {
+      x: eye.x - outerDir.x * f.faceWidth * 0.05,
+      y: eye.y - outerDir.y * f.faceWidth * 0.05 - f.up.y * f.faceWidth * 0.01,
+    };
+    const mid = {
+      x: eye.x + outerDir.x * f.faceWidth * 0.1,
+      y: eye.y + outerDir.y * f.faceWidth * 0.1 - f.up.y * f.faceWidth * 0.015,
+    };
+    const tip = {
+      x: eye.x + outerDir.x * f.faceWidth * 0.16 + f.up.x * f.faceWidth * 0.04,
+      y: eye.y + outerDir.y * f.faceWidth * 0.16 + f.up.y * f.faceWidth * 0.04,
+    };
+    ctx.beginPath();
+    ctx.moveTo(start.x, start.y);
+    ctx.quadraticCurveTo(mid.x, mid.y, tip.x, tip.y);
+    ctx.stroke();
+  }
+  // Red bindi-style dot between eyes (Khmer/Hindu heritage tilak)
+  const tilakX = (f.leftEye.x + f.rightEye.x) / 2 + f.up.x * f.faceHeight * 0.05;
+  const tilakY = (f.leftEye.y + f.rightEye.y) / 2 + f.up.y * f.faceHeight * 0.05;
+  const r = f.faceWidth * 0.035;
+  const grad = ctx.createRadialGradient(tilakX - r * 0.3, tilakY - r * 0.3, 0, tilakX, tilakY, r);
+  grad.addColorStop(0, "#ff5566");
+  grad.addColorStop(1, "#990012");
+  ctx.fillStyle = grad;
+  ctx.beginPath();
+  ctx.arc(tilakX, tilakY, r, 0, Math.PI * 2);
+  ctx.fill();
+  // Tiny gold dot on top of red
+  ctx.fillStyle = "#ffd34a";
+  ctx.beginPath();
+  ctx.arc(tilakX - r * 0.2, tilakY - r * 0.2, r * 0.25, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+}
+
 // --- THE FILTERS ---
 
 export const FILTERS: Filter[] = [
+  // 🇰🇭 CAMBODGE — cultural filters drawn as vector parts
+  { id: "mokot", name: "Mokot Apsara", emoji: "👸", category: "cambodge", needsFace: true, render: ({ ctx, frame }) => {
+    if (!frame) return;
+    drawMokotCrown(ctx, frame);
+    drawApsaraMakeup(ctx, frame);
+  } },
+  { id: "angkor", name: "Angkor Wat", emoji: "🛕", category: "cambodge", needsFace: true, render: ({ ctx, frame }) => {
+    if (!frame) return;
+    drawAngkorWatCrown(ctx, frame);
+  } },
+  { id: "bayon", name: "Bayon", emoji: "🗿", category: "cambodge", needsFace: false, render: ({ ctx, width, height, frame }) => {
+    drawBayonEffect(ctx, width, height, frame);
+  } },
+  { id: "lotus", name: "Lotus halo", emoji: "🪷", category: "cambodge", needsFace: true, render: ({ ctx, frame }) => {
+    if (!frame) return;
+    drawLotusHalo(ctx, frame);
+  } },
+  { id: "krama", name: "Krama", emoji: "🧣", category: "cambodge", needsFace: true, render: ({ ctx, frame }) => {
+    if (!frame) return;
+    drawKrama(ctx, frame);
+  } },
+  { id: "buddha", name: "Buddha halo", emoji: "🧘", category: "cambodge", needsFace: true, render: ({ ctx, frame, time }) => {
+    if (!frame) return;
+    drawBuddhaHalo(ctx, frame, time);
+  } },
+  { id: "garuda", name: "Garuda", emoji: "🦅", category: "cambodge", needsFace: true, render: ({ ctx, frame }) => {
+    if (!frame) return;
+    drawGarudaWings(ctx, frame);
+  } },
+  { id: "naga", name: "Naga", emoji: "🐍", category: "cambodge", needsFace: true, render: ({ ctx, frame }) => {
+    if (!frame) return;
+    drawNagaCrown(ctx, frame);
+  } },
+  { id: "chaul-chnam", name: "Chaul Chnam", emoji: "🎊", category: "cambodge", needsFace: true, render: ({ ctx, frame }) => {
+    if (!frame) return;
+    drawKhmerNewYearPowder(ctx, frame);
+  } },
+  { id: "drapeau-khmer", name: "Drapeau khmer", emoji: "🇰🇭", category: "cambodge", needsFace: true, render: ({ ctx, frame }) => {
+    if (!frame) return;
+    drawCambodianFlagPaint(ctx, frame);
+  } },
+
   // 🐶 ANIMAUX (composed of drawn parts + small emoji nose)
   { id: "dog", name: "Chien", emoji: "🐶", category: "animaux", needsFace: true, render: ({ ctx, frame }) => {
     if (!frame) return;
