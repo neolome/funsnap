@@ -169,88 +169,104 @@ function sideOfHead(f: FaceFrame, side: -1 | 1, upOffset: number, lateralFactor 
 // --- Drawn animal parts (vector shapes — much sharper than emojis) ---
 
 function drawDogEars(ctx: CanvasRenderingContext2D, f: FaceFrame) {
-  ctx.save();
   for (const side of [-1, 1] as const) {
-    const base = sideOfHead(f, side, -f.faceHeight * 0.05, 0.4);
+    // Anchor at TOP-CORNER of head, then ear hangs DOWNWARD
+    const baseX = f.topOfHead.x + f.right.x * side * f.faceWidth * 0.32;
+    const baseY = f.topOfHead.y + f.right.y * side * f.faceWidth * 0.32;
     ctx.save();
-    ctx.translate(base.x, base.y);
-    ctx.rotate(f.angle + side * 0.25);
-    const w = f.faceWidth * 0.22;
-    const h = f.faceHeight * 0.5;
-    // Outer ear (floppy)
-    const grad = ctx.createLinearGradient(0, -h / 2, 0, h / 2);
-    grad.addColorStop(0, "#8b5a2b");
-    grad.addColorStop(0.6, "#5c3a1a");
-    grad.addColorStop(1, "#3a2410");
+    ctx.translate(baseX, baseY);
+    ctx.rotate(f.angle + side * 0.3);
+    const w = f.faceWidth * 0.13;
+    const h = f.faceHeight * 0.55;
+    // Outer ear — tall ellipse: top at base (y=0), bottom at y=h
+    const grad = ctx.createLinearGradient(0, 0, 0, h);
+    grad.addColorStop(0, "#9c652d");
+    grad.addColorStop(0.5, "#6f3f12");
+    grad.addColorStop(1, "#3a1f06");
     ctx.fillStyle = grad;
     ctx.beginPath();
-    ctx.ellipse(0, h * 0.1, w, h, 0, 0, Math.PI * 2);
+    ctx.ellipse(0, h * 0.5, w, h * 0.5, 0, 0, Math.PI * 2);
     ctx.fill();
-    // Inner ear (lighter)
-    ctx.fillStyle = "rgba(255, 180, 140, 0.85)";
+    // Outline
+    ctx.strokeStyle = "rgba(20, 10, 0, 0.45)";
+    ctx.lineWidth = Math.max(1, f.faceWidth * 0.005);
+    ctx.stroke();
+    // Inner ear — lighter peach, smaller, slightly inset toward the tip
+    ctx.fillStyle = "rgba(255, 180, 145, 0.92)";
     ctx.beginPath();
-    ctx.ellipse(0, h * 0.15, w * 0.55, h * 0.75, 0, 0, Math.PI * 2);
+    ctx.ellipse(0, h * 0.55, w * 0.55, h * 0.4, 0, 0, Math.PI * 2);
     ctx.fill();
     ctx.restore();
   }
-  ctx.restore();
 }
 
-function drawCatEars(ctx: CanvasRenderingContext2D, f: FaceFrame, color = "#000") {
-  ctx.save();
+function drawCatEars(ctx: CanvasRenderingContext2D, f: FaceFrame, color = "#222") {
   for (const side of [-1, 1] as const) {
-    const base = sideOfHead(f, side, f.faceHeight * 0.05, 0.35);
+    // Anchor at top of head, ~30% face width from center
+    const baseX = f.topOfHead.x + f.right.x * side * f.faceWidth * 0.3 + f.up.x * f.faceHeight * 0.05;
+    const baseY = f.topOfHead.y + f.right.y * side * f.faceWidth * 0.3 + f.up.y * f.faceHeight * 0.05;
     ctx.save();
-    ctx.translate(base.x, base.y);
-    ctx.rotate(f.angle + side * 0.1);
-    const w = f.faceWidth * 0.18;
-    const h = f.faceHeight * 0.4;
-    // Outer triangle
+    ctx.translate(baseX, baseY);
+    ctx.rotate(f.angle + side * 0.12);
+    const w = f.faceWidth * 0.2;
+    const h = f.faceHeight * 0.5;
+    // Outer triangle (slight curve on the outer edge)
     ctx.fillStyle = color;
     ctx.beginPath();
-    ctx.moveTo(-w, h / 2);
-    ctx.lineTo(w, h / 2);
-    ctx.lineTo(side * w * 0.4, -h);
+    ctx.moveTo(-w, h * 0.1);
+    ctx.lineTo(w * 0.8, h * 0.05);
+    ctx.quadraticCurveTo(w * 0.5, -h * 0.5, side * w * 0.4, -h);
+    ctx.quadraticCurveTo(-w * 0.5, -h * 0.5, -w, h * 0.1);
     ctx.closePath();
     ctx.fill();
     // Inner pink
     ctx.fillStyle = "#ff9bb3";
     ctx.beginPath();
-    ctx.moveTo(-w * 0.5, h * 0.4);
-    ctx.lineTo(w * 0.5, h * 0.4);
-    ctx.lineTo(side * w * 0.25, -h * 0.5);
+    ctx.moveTo(-w * 0.55, h * 0);
+    ctx.lineTo(w * 0.55, h * -0.05);
+    ctx.lineTo(side * w * 0.25, -h * 0.7);
     ctx.closePath();
     ctx.fill();
     ctx.restore();
   }
-  ctx.restore();
 }
 
-function drawCatWhiskers(ctx: CanvasRenderingContext2D, f: FaceFrame, color = "#1a1a1a") {
+function drawCatWhiskers(ctx: CanvasRenderingContext2D, f: FaceFrame, color = "#0a0a0a") {
   ctx.save();
   ctx.strokeStyle = color;
   ctx.lineCap = "round";
-  ctx.lineWidth = Math.max(2, f.faceWidth * 0.012);
+  ctx.lineWidth = Math.max(3, f.faceWidth * 0.02);
   const cx = f.noseTip.x;
   const cy = f.noseTip.y;
-  // Triangular black nose
-  ctx.fillStyle = color;
+  // Triangular pink-tipped black nose
+  const noseSize = f.faceWidth * 0.07;
+  ctx.fillStyle = "#ff7799";
   ctx.beginPath();
-  ctx.moveTo(cx, cy + f.faceWidth * 0.04);
-  ctx.lineTo(cx - f.faceWidth * 0.04, cy - f.faceWidth * 0.01);
-  ctx.lineTo(cx + f.faceWidth * 0.04, cy - f.faceWidth * 0.01);
+  ctx.moveTo(cx, cy + noseSize);
+  ctx.lineTo(cx - noseSize, cy - noseSize * 0.4);
+  ctx.lineTo(cx + noseSize, cy - noseSize * 0.4);
   ctx.closePath();
   ctx.fill();
-  // Whiskers (3 per side)
+  ctx.strokeStyle = color;
+  ctx.lineWidth = Math.max(2, f.faceWidth * 0.008);
+  ctx.stroke();
+  // Vertical line from nose to mouth
+  ctx.beginPath();
+  ctx.moveTo(cx, cy + noseSize);
+  ctx.lineTo(cx, cy + f.faceHeight * 0.08);
+  ctx.stroke();
+  // Whiskers — 3 per side, thicker and longer
+  ctx.strokeStyle = color;
+  ctx.lineWidth = Math.max(3, f.faceWidth * 0.018);
   for (const side of [-1, 1] as const) {
     for (let i = -1; i <= 1; i++) {
-      const startX = cx + side * f.faceWidth * 0.08;
-      const startY = cy + i * f.faceWidth * 0.03;
-      const endX = cx + side * f.faceWidth * 0.35;
-      const endY = startY + i * f.faceWidth * 0.025;
+      const startX = cx + side * f.faceWidth * 0.07;
+      const startY = cy + i * f.faceWidth * 0.04;
+      const endX = cx + side * f.faceWidth * 0.42;
+      const endY = startY + i * f.faceWidth * 0.04;
       ctx.beginPath();
       ctx.moveTo(startX, startY);
-      ctx.quadraticCurveTo(cx + side * f.faceWidth * 0.2, startY, endX, endY);
+      ctx.quadraticCurveTo(cx + side * f.faceWidth * 0.22, startY + i * f.faceWidth * 0.005, endX, endY);
       ctx.stroke();
     }
   }
@@ -258,94 +274,201 @@ function drawCatWhiskers(ctx: CanvasRenderingContext2D, f: FaceFrame, color = "#
 }
 
 function drawBunnyEars(ctx: CanvasRenderingContext2D, f: FaceFrame) {
-  ctx.save();
   for (const side of [-1, 1] as const) {
-    const base = sideOfHead(f, side, f.faceHeight * 0.05, 0.22);
+    // Anchor at top of head, close to center
+    const baseX = f.topOfHead.x + f.right.x * side * f.faceWidth * 0.15 - f.up.x * f.faceHeight * 0.05;
+    const baseY = f.topOfHead.y + f.right.y * side * f.faceWidth * 0.15 - f.up.y * f.faceHeight * 0.05;
     ctx.save();
-    ctx.translate(base.x, base.y);
-    ctx.rotate(f.angle + side * 0.12);
+    ctx.translate(baseX, baseY);
+    ctx.rotate(f.angle + side * 0.18);
     const w = f.faceWidth * 0.1;
-    const h = f.faceHeight * 0.75;
-    // Outer white
-    ctx.fillStyle = "#fafafa";
+    const h = f.faceHeight * 0.95;
+    // Outer white with subtle shadow
+    const grad = ctx.createLinearGradient(-w, 0, w, 0);
+    grad.addColorStop(0, "#dcdcdc");
+    grad.addColorStop(0.5, "#ffffff");
+    grad.addColorStop(1, "#cfcfcf");
+    ctx.fillStyle = grad;
     ctx.beginPath();
-    ctx.ellipse(0, -h * 0.3, w, h, 0, 0, Math.PI * 2);
+    ctx.ellipse(0, -h * 0.45, w, h * 0.55, 0, 0, Math.PI * 2);
     ctx.fill();
+    // Outline
+    ctx.strokeStyle = "rgba(80,80,80,0.5)";
+    ctx.lineWidth = Math.max(1, f.faceWidth * 0.005);
+    ctx.stroke();
     // Inner pink
     ctx.fillStyle = "#ffa3c3";
     ctx.beginPath();
-    ctx.ellipse(0, -h * 0.3, w * 0.55, h * 0.85, 0, 0, Math.PI * 2);
+    ctx.ellipse(0, -h * 0.45, w * 0.55, h * 0.45, 0, 0, Math.PI * 2);
     ctx.fill();
     ctx.restore();
   }
-  ctx.restore();
 }
 
 function drawPandaEars(ctx: CanvasRenderingContext2D, f: FaceFrame) {
-  ctx.save();
   for (const side of [-1, 1] as const) {
-    const base = sideOfHead(f, side, f.faceHeight * 0.02, 0.42);
+    const baseX = f.topOfHead.x + f.right.x * side * f.faceWidth * 0.38;
+    const baseY = f.topOfHead.y + f.right.y * side * f.faceWidth * 0.38;
+    // Big round black ear
     ctx.fillStyle = "#0a0a0a";
     ctx.beginPath();
-    ctx.arc(base.x, base.y, f.faceWidth * 0.14, 0, Math.PI * 2);
+    ctx.arc(baseX, baseY, f.faceWidth * 0.2, 0, Math.PI * 2);
+    ctx.fill();
+    // Subtle highlight to give depth
+    ctx.fillStyle = "rgba(60, 60, 60, 0.4)";
+    ctx.beginPath();
+    ctx.arc(baseX - f.faceWidth * 0.04, baseY - f.faceWidth * 0.04, f.faceWidth * 0.07, 0, Math.PI * 2);
     ctx.fill();
   }
-  ctx.restore();
 }
 
 function drawPandaEyes(ctx: CanvasRenderingContext2D, f: FaceFrame) {
   ctx.save();
-  ctx.fillStyle = "#0a0a0a";
+  // HUGE tilted oval eye patches — the iconic panda feature
+  for (const side of [-1, 1] as const) {
+    const eye = side === -1 ? f.leftEye : f.rightEye;
+    ctx.save();
+    ctx.translate(eye.x, eye.y);
+    // Tilt the patch — inner edge higher, outer edge lower (like real panda)
+    ctx.rotate(f.angle + side * -0.35);
+    // Big black oval — extends past the eye toward the cheek
+    ctx.fillStyle = "#0a0a0a";
+    ctx.beginPath();
+    ctx.ellipse(
+      side * f.faceWidth * 0.02, // slight outward shift
+      f.faceWidth * 0.05,        // shifted down toward cheek
+      f.faceWidth * 0.15,        // half-width
+      f.faceWidth * 0.18,        // half-height (taller)
+      0, 0, Math.PI * 2,
+    );
+    ctx.fill();
+    ctx.restore();
+  }
+  // Cute white sclera inside each patch
+  ctx.fillStyle = "#ffffff";
   for (const eye of [f.leftEye, f.rightEye]) {
     ctx.beginPath();
-    ctx.ellipse(eye.x, eye.y, f.faceWidth * 0.09, f.faceWidth * 0.12, f.angle, 0, Math.PI * 2);
+    ctx.arc(eye.x, eye.y, f.faceWidth * 0.035, 0, Math.PI * 2);
     ctx.fill();
   }
+  // Black pupils
+  ctx.fillStyle = "#000";
+  for (const eye of [f.leftEye, f.rightEye]) {
+    ctx.beginPath();
+    ctx.arc(eye.x, eye.y, f.faceWidth * 0.018, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  // White highlight on pupil for cuteness
+  ctx.fillStyle = "#fff";
+  for (const eye of [f.leftEye, f.rightEye]) {
+    ctx.beginPath();
+    ctx.arc(eye.x - f.faceWidth * 0.005, eye.y - f.faceWidth * 0.005, f.faceWidth * 0.007, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.restore();
+}
+
+function drawPandaNose(ctx: CanvasRenderingContext2D, f: FaceFrame) {
+  ctx.save();
+  ctx.translate(f.noseTip.x, f.noseTip.y);
+  ctx.rotate(f.angle);
+  // Big rounded black nose
+  ctx.fillStyle = "#0a0a0a";
+  ctx.beginPath();
+  ctx.ellipse(0, 0, f.faceWidth * 0.06, f.faceWidth * 0.045, 0, 0, Math.PI * 2);
+  ctx.fill();
+  // Highlight
+  ctx.fillStyle = "rgba(255,255,255,0.4)";
+  ctx.beginPath();
+  ctx.ellipse(-f.faceWidth * 0.015, -f.faceWidth * 0.012, f.faceWidth * 0.015, f.faceWidth * 0.01, 0, 0, Math.PI * 2);
+  ctx.fill();
+  // Vertical line to mouth
+  ctx.strokeStyle = "#000";
+  ctx.lineWidth = Math.max(2, f.faceWidth * 0.01);
+  ctx.beginPath();
+  ctx.moveTo(0, f.faceWidth * 0.045);
+  ctx.lineTo(0, f.faceHeight * 0.08);
+  ctx.stroke();
   ctx.restore();
 }
 
 function drawBearEars(ctx: CanvasRenderingContext2D, f: FaceFrame) {
-  ctx.save();
   for (const side of [-1, 1] as const) {
-    const base = sideOfHead(f, side, f.faceHeight * 0.02, 0.4);
-    ctx.fillStyle = "#6b3e1f";
+    const baseX = f.topOfHead.x + f.right.x * side * f.faceWidth * 0.38;
+    const baseY = f.topOfHead.y + f.right.y * side * f.faceWidth * 0.38;
+    // Bigger outer brown
+    ctx.fillStyle = "#5a3110";
     ctx.beginPath();
-    ctx.arc(base.x, base.y, f.faceWidth * 0.13, 0, Math.PI * 2);
+    ctx.arc(baseX, baseY, f.faceWidth * 0.18, 0, Math.PI * 2);
     ctx.fill();
-    ctx.fillStyle = "#a87045";
+    // Inner lighter brown
+    ctx.fillStyle = "#a06530";
     ctx.beginPath();
-    ctx.arc(base.x, base.y, f.faceWidth * 0.08, 0, Math.PI * 2);
+    ctx.arc(baseX, baseY, f.faceWidth * 0.12, 0, Math.PI * 2);
+    ctx.fill();
+    // Pink center
+    ctx.fillStyle = "rgba(255, 180, 150, 0.55)";
+    ctx.beginPath();
+    ctx.arc(baseX, baseY, f.faceWidth * 0.06, 0, Math.PI * 2);
     ctx.fill();
   }
-  ctx.restore();
 }
 
 function drawFoxEars(ctx: CanvasRenderingContext2D, f: FaceFrame) {
-  ctx.save();
   for (const side of [-1, 1] as const) {
-    const base = sideOfHead(f, side, f.faceHeight * 0.05, 0.35);
+    const baseX = f.topOfHead.x + f.right.x * side * f.faceWidth * 0.3 + f.up.x * f.faceHeight * 0.06;
+    const baseY = f.topOfHead.y + f.right.y * side * f.faceWidth * 0.3 + f.up.y * f.faceHeight * 0.06;
     ctx.save();
-    ctx.translate(base.x, base.y);
-    ctx.rotate(f.angle + side * 0.15);
-    const w = f.faceWidth * 0.14;
-    const h = f.faceHeight * 0.42;
-    ctx.fillStyle = "#e67e22";
+    ctx.translate(baseX, baseY);
+    ctx.rotate(f.angle + side * 0.18);
+    const w = f.faceWidth * 0.15;
+    const h = f.faceHeight * 0.52;
+    // Outer orange triangle
+    const grad = ctx.createLinearGradient(0, 0, 0, -h);
+    grad.addColorStop(0, "#e67e22");
+    grad.addColorStop(1, "#b85d16");
+    ctx.fillStyle = grad;
     ctx.beginPath();
-    ctx.moveTo(-w, h / 2);
-    ctx.lineTo(w, h / 2);
-    ctx.lineTo(side * w * 0.3, -h);
+    ctx.moveTo(-w, h * 0.1);
+    ctx.quadraticCurveTo(-w * 0.7, -h * 0.4, side * w * 0.3, -h);
+    ctx.quadraticCurveTo(w * 0.7, -h * 0.4, w, h * 0.1);
+    ctx.closePath();
+    ctx.fill();
+    // White inner
+    ctx.fillStyle = "#f5e8d0";
+    ctx.beginPath();
+    ctx.moveTo(-w * 0.55, h * 0);
+    ctx.quadraticCurveTo(-w * 0.45, -h * 0.35, side * w * 0.2, -h * 0.7);
+    ctx.quadraticCurveTo(w * 0.45, -h * 0.35, w * 0.55, h * 0);
     ctx.closePath();
     ctx.fill();
     // Black tip
     ctx.fillStyle = "#1a1a1a";
     ctx.beginPath();
-    ctx.moveTo(-w * 0.35, -h * 0.2);
-    ctx.lineTo(w * 0.35, -h * 0.2);
+    ctx.moveTo(-w * 0.4, -h * 0.55);
+    ctx.lineTo(w * 0.4, -h * 0.55);
     ctx.lineTo(side * w * 0.3, -h);
     ctx.closePath();
     ctx.fill();
     ctx.restore();
   }
+}
+
+function drawFoxMask(ctx: CanvasRenderingContext2D, f: FaceFrame) {
+  // White / cream patches around the eyes — fox's iconic mask
+  ctx.save();
+  ctx.fillStyle = "rgba(245, 232, 208, 0.85)";
+  for (const eye of [f.leftEye, f.rightEye]) {
+    ctx.beginPath();
+    ctx.ellipse(eye.x, eye.y + f.faceWidth * 0.02, f.faceWidth * 0.12, f.faceWidth * 0.09, f.angle, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  // White around the muzzle area too
+  const muzzleX = f.noseTip.x;
+  const muzzleY = (f.noseTip.y + f.mouthCenter.y) / 2;
+  ctx.beginPath();
+  ctx.ellipse(muzzleX, muzzleY, f.faceWidth * 0.18, f.faceWidth * 0.12, f.angle, 0, Math.PI * 2);
+  ctx.fill();
   ctx.restore();
 }
 
@@ -353,26 +476,42 @@ function drawLionMane(ctx: CanvasRenderingContext2D, f: FaceFrame) {
   ctx.save();
   const cx = f.center.x;
   const cy = f.center.y;
-  // Outer fluffy ring
-  ctx.fillStyle = "#b8702a";
-  const spikes = 24;
-  const baseR = f.headWidth * 0.62;
-  const tipR = f.headWidth * 0.85;
+  const innerR = f.headWidth * 0.55; // matches head silhouette — keep face visible
+  const baseR = f.headWidth * 0.68;
+  const tipR = f.headWidth * 0.95;
+  const spikes = 28;
+  // Outer mane = spiky ring (donut with inner hole = face stays visible)
+  ctx.fillStyle = "#a96518";
   ctx.beginPath();
   for (let i = 0; i < spikes * 2; i++) {
-    const a = (i / (spikes * 2)) * Math.PI * 2;
+    const a = (i / (spikes * 2)) * Math.PI * 2 - Math.PI / 2;
     const r = i % 2 === 0 ? tipR : baseR;
     const x = cx + Math.cos(a) * r;
     const y = cy + Math.sin(a) * r;
     if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
   }
   ctx.closePath();
-  ctx.fill();
-  // Inner darker
-  ctx.fillStyle = "#8a5418";
+  // Hole for face
+  ctx.moveTo(cx + innerR, cy);
+  ctx.arc(cx, cy, innerR, 0, Math.PI * 2, true);
+  ctx.fill("evenodd");
+  // Second darker spiky ring inside the outer ring for depth
+  const baseR2 = innerR * 1.02;
+  const tipR2 = baseR + (tipR - baseR) * 0.45;
+  const spikes2 = 22;
+  ctx.fillStyle = "#7a440b";
   ctx.beginPath();
-  ctx.arc(cx, cy, f.headWidth * 0.55, 0, Math.PI * 2);
-  ctx.fill();
+  for (let i = 0; i < spikes2 * 2; i++) {
+    const a = (i / (spikes2 * 2)) * Math.PI * 2 - Math.PI / 2 + 0.1;
+    const r = i % 2 === 0 ? tipR2 : baseR2;
+    const x = cx + Math.cos(a) * r;
+    const y = cy + Math.sin(a) * r;
+    if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+  }
+  ctx.closePath();
+  ctx.moveTo(cx + innerR, cy);
+  ctx.arc(cx, cy, innerR, 0, Math.PI * 2, true);
+  ctx.fill("evenodd");
   ctx.restore();
 }
 
@@ -453,44 +592,67 @@ function drawPigSnout(ctx: CanvasRenderingContext2D, f: FaceFrame) {
   ctx.save();
   ctx.translate(f.noseTip.x, f.noseTip.y);
   ctx.rotate(f.angle);
-  const w = f.faceWidth * 0.22;
-  const h = f.faceWidth * 0.16;
-  // Pink snout
-  const grad = ctx.createRadialGradient(0, -h * 0.2, 0, 0, 0, w);
-  grad.addColorStop(0, "#ffc0d0");
-  grad.addColorStop(1, "#e88aa6");
+  const w = f.faceWidth * 0.32; // bigger
+  const h = f.faceWidth * 0.24;
+  // Pink snout with gradient
+  const grad = ctx.createRadialGradient(0, -h * 0.3, 0, 0, 0, w);
+  grad.addColorStop(0, "#ffd5e0");
+  grad.addColorStop(0.7, "#ffaac5");
+  grad.addColorStop(1, "#d56a90");
   ctx.fillStyle = grad;
   ctx.beginPath();
   ctx.ellipse(0, 0, w, h, 0, 0, Math.PI * 2);
   ctx.fill();
-  // Two nostrils
-  ctx.fillStyle = "#9a4d6a";
+  // Outline
+  ctx.strokeStyle = "rgba(150, 50, 80, 0.5)";
+  ctx.lineWidth = Math.max(1.5, f.faceWidth * 0.006);
+  ctx.stroke();
+  // Two prominent nostrils
+  ctx.fillStyle = "#7a2840";
   ctx.beginPath();
-  ctx.ellipse(-w * 0.35, 0, w * 0.1, h * 0.3, 0, 0, Math.PI * 2);
+  ctx.ellipse(-w * 0.32, 0, w * 0.13, h * 0.4, 0, 0, Math.PI * 2);
   ctx.fill();
   ctx.beginPath();
-  ctx.ellipse(w * 0.35, 0, w * 0.1, h * 0.3, 0, 0, Math.PI * 2);
+  ctx.ellipse(w * 0.32, 0, w * 0.13, h * 0.4, 0, 0, Math.PI * 2);
+  ctx.fill();
+  // Highlight on top
+  ctx.fillStyle = "rgba(255,255,255,0.4)";
+  ctx.beginPath();
+  ctx.ellipse(-w * 0.15, -h * 0.45, w * 0.25, h * 0.15, 0, 0, Math.PI * 2);
   ctx.fill();
   ctx.restore();
 }
 
 function drawPigEars(ctx: CanvasRenderingContext2D, f: FaceFrame) {
-  ctx.save();
   for (const side of [-1, 1] as const) {
-    const base = sideOfHead(f, side, f.faceHeight * 0.05, 0.4);
+    const baseX = f.topOfHead.x + f.right.x * side * f.faceWidth * 0.3 + f.up.x * f.faceHeight * 0.02;
+    const baseY = f.topOfHead.y + f.right.y * side * f.faceWidth * 0.3 + f.up.y * f.faceHeight * 0.02;
     ctx.save();
-    ctx.translate(base.x, base.y);
-    ctx.rotate(f.angle + side * 0.3);
-    ctx.fillStyle = "#ffc0d0";
+    ctx.translate(baseX, baseY);
+    ctx.rotate(f.angle + side * 0.35);
+    const w = f.faceWidth * 0.1;
+    const h = f.faceHeight * 0.3;
+    // Pink triangle ear
+    const grad = ctx.createLinearGradient(0, 0, 0, -h);
+    grad.addColorStop(0, "#ffaac5");
+    grad.addColorStop(1, "#ff7099");
+    ctx.fillStyle = grad;
     ctx.beginPath();
-    ctx.moveTo(-f.faceWidth * 0.07, 0);
-    ctx.lineTo(f.faceWidth * 0.07, 0);
-    ctx.lineTo(side * f.faceWidth * 0.04, -f.faceHeight * 0.18);
+    ctx.moveTo(-w, h * 0.1);
+    ctx.quadraticCurveTo(-w * 0.5, -h * 0.5, side * w * 0.3, -h);
+    ctx.quadraticCurveTo(w * 0.5, -h * 0.5, w, h * 0.1);
+    ctx.closePath();
+    ctx.fill();
+    // Inner pink darker
+    ctx.fillStyle = "#d56a90";
+    ctx.beginPath();
+    ctx.moveTo(-w * 0.55, h * 0);
+    ctx.quadraticCurveTo(-w * 0.3, -h * 0.4, side * w * 0.2, -h * 0.85);
+    ctx.quadraticCurveTo(w * 0.3, -h * 0.4, w * 0.55, h * 0);
     ctx.closePath();
     ctx.fill();
     ctx.restore();
   }
-  ctx.restore();
 }
 
 function drawUnicornHorn(ctx: CanvasRenderingContext2D, f: FaceFrame) {
@@ -1456,7 +1618,7 @@ export const FILTERS: Filter[] = [
     if (!frame) return;
     drawPandaEars(ctx, frame);
     drawPandaEyes(ctx, frame);
-    drawTwemoji(ctx, "⚫", frame.noseTip.x, frame.noseTip.y, frame.faceWidth * 0.1, frame.angle);
+    drawPandaNose(ctx, frame);
   } },
   { id: "bear", name: "Ours", emoji: "🐻", category: "animaux", needsFace: true, render: ({ ctx, frame }) => {
     if (!frame) return;
@@ -1465,13 +1627,22 @@ export const FILTERS: Filter[] = [
   } },
   { id: "fox", name: "Renard", emoji: "🦊", category: "animaux", needsFace: true, render: ({ ctx, frame }) => {
     if (!frame) return;
+    drawFoxMask(ctx, frame);
     drawFoxEars(ctx, frame);
-    drawAnimalSnout(ctx, frame, "#e67e22", "#1a1a1a");
+    drawAnimalSnout(ctx, frame, "#e67e22", "#0a0a0a");
   } },
   { id: "lion", name: "Lion", emoji: "🦁", category: "animaux", needsFace: true, render: ({ ctx, frame }) => {
     if (!frame) return;
     drawLionMane(ctx, frame);
-    drawAnimalSnout(ctx, frame, "#a87045", "#1a1a1a");
+    // Smaller drawn nose (don't cover the user's face — just a hint)
+    ctx.save();
+    ctx.translate(frame.noseTip.x, frame.noseTip.y);
+    ctx.rotate(frame.angle);
+    ctx.fillStyle = "#3a2410";
+    ctx.beginPath();
+    ctx.ellipse(0, 0, frame.faceWidth * 0.05, frame.faceWidth * 0.04, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
   } },
   { id: "tiger", name: "Tigre", emoji: "🐯", category: "animaux", needsFace: true, render: ({ ctx, frame }) => {
     if (!frame) return;
