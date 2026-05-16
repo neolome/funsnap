@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { getFaceLandmarker } from "@/lib/face-landmarker";
-import { FILTERS, NO_FILTER, type Filter } from "@/lib/filters";
+import { FILTERS, NO_FILTER, computeFaceFrame, type Filter } from "@/lib/filters";
 import { FilterCarousel } from "./FilterCarousel";
 import { CategoryBar } from "./CategoryBar";
 import { CaptureButton } from "./CaptureButton";
@@ -138,15 +138,15 @@ export function Camera() {
         const filter = filterRef.current;
         const landmarks = lastLandmarksRef.current;
         if (filter && filter.id !== "none") {
-          // Color/effect filters can run without landmarks
-          const noLandmarksNeeded = ["bw", "sepia", "vhs", "glitch", "neon", "anime", "pixel", "zombie", "ghost", "cartoon"];
-          if (noLandmarksNeeded.includes(filter.id) || landmarks) {
+          const frame = landmarks ? computeFaceFrame(landmarks, w, h) : null;
+          if (frame || !filter.needsFace) {
             try {
               filter.render({
                 ctx,
                 width: w,
                 height: h,
-                landmarks: landmarks ?? new Array(478).fill({ x: 0.5, y: 0.5, z: 0 }),
+                landmarks: landmarks ?? [],
+                frame,
                 time: now,
               });
             } catch (err) {
