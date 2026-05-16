@@ -2,12 +2,15 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { getFaceLandmarker } from "@/lib/face-landmarker";
-import { FILTERS, NO_FILTER, computeFaceFrame, type Filter } from "@/lib/filters";
+import { FILTERS, NO_FILTER, computeFaceFrame, getAllUsedEmojis, type Filter } from "@/lib/filters";
+import { preloadEmojis } from "@/lib/twemoji";
+import { LandmarkSmoother } from "@/lib/smoothing";
 import { FilterCarousel } from "./FilterCarousel";
 import { CategoryBar } from "./CategoryBar";
 import { CaptureButton } from "./CaptureButton";
 import { TopControls } from "./TopControls";
 import { CapturePreview } from "./CapturePreview";
+import { FilterNamePill } from "./FilterNamePill";
 
 type FacingMode = "user" | "environment";
 
@@ -16,11 +19,12 @@ type Capture = { type: "image"; dataUrl: string } | { type: "video"; url: string
 export function Camera() {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const containerRef = useRef<HTMLDivElement>(null);
+  const flashRef = useRef<HTMLDivElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const rafRef = useRef<number | null>(null);
   const lastVideoTimeRef = useRef(-1);
-  const lastLandmarksRef = useRef<{ x: number; y: number; z: number }[] | null>(null);
+  const lastLandmarksRef = useRef<{ x: number; y: number; z?: number }[] | null>(null);
+  const smootherRef = useRef<LandmarkSmoother>(new LandmarkSmoother(0.6));
   const filterRef = useRef<Filter>(NO_FILTER);
   const recorderRef = useRef<MediaRecorder | null>(null);
   const recordedChunksRef = useRef<Blob[]>([]);
@@ -38,10 +42,15 @@ export function Camera() {
   const [recordingProgress, setRecordingProgress] = useState(0);
   const [capture, setCapture] = useState<Capture | null>(null);
 
-  // Keep filter ref in sync (so RAF loop reads latest without re-binding)
   useEffect(() => {
     filterRef.current = activeFilter;
+    smootherRef.current.reset();
   }, [activeFilter]);
+
+  // Preload Twemoji assets on mount so filters render instantly when picked
+  useEffect(() => {
+    preloadEmojis(getAllUsedEmojis()).catch(() => {});
+  }, []);
 
   const startCamera = useCallback(async (facingMode: FacingMode) => {
     setReady(false);
@@ -86,7 +95,6 @@ export function Camera() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [facing]);
 
-  // Render loop
   useEffect(() => {
     if (!ready) return;
     const video = videoRef.current!;
@@ -104,7 +112,6 @@ export function Camera() {
         if (canvas.width !== w) canvas.width = w;
         if (canvas.height !== h) canvas.height = h;
 
-        // Mirror for front camera
         ctx.save();
         if (facing === "user") {
           ctx.translate(w, 0);
@@ -113,7 +120,6 @@ export function Camera() {
         ctx.drawImage(video, 0, 0, w, h);
         ctx.restore();
 
-        // Detect face
         const now = performance.now();
         if (video.currentTime !== lastVideoTimeRef.current) {
           lastVideoTimeRef.current = video.currentTime;
@@ -122,19 +128,19 @@ export function Camera() {
             const result = fl.detectForVideo(video, now);
             if (result.faceLandmarks && result.faceLandmarks[0]) {
               const raw = result.faceLandmarks[0];
-              // Mirror landmarks horizontally for front camera (since canvas is mirrored)
-              lastLandmarksRef.current = facing === "user"
+              const mirrored = facing === "user"
                 ? raw.map((p) => ({ x: 1 - p.x, y: p.y, z: p.z }))
                 : raw.map((p) => ({ x: p.x, y: p.y, z: p.z }));
+              lastLandmarksRef.current = smootherRef.current.smooth(mirrored);
             } else {
               lastLandmarksRef.current = null;
+              smootherRef.current.reset();
             }
           } catch (err) {
             console.error("Face detection error:", err);
           }
         }
 
-        // Apply filter
         const filter = filterRef.current;
         const landmarks = lastLandmarksRef.current;
         if (filter && filter.id !== "none") {
@@ -174,9 +180,23 @@ export function Camera() {
     setActiveFilter(FILTERS[idx]);
   };
 
+  const flashScreen = () => {
+    const el = flashRef.current;
+    if (!el) return;
+    el.style.opacity = "1";
+    requestAnimationFrame(() => {
+      el.style.transition = "opacity 0.4s ease-out";
+      el.style.opacity = "0";
+      setTimeout(() => {
+        el.style.transition = "";
+      }, 450);
+    });
+  };
+
   const handleTakePhoto = () => {
     const canvas = canvasRef.current;
     if (!canvas) return;
+    flashScreen();
     const dataUrl = canvas.toDataURL("image/jpeg", 0.92);
     setCapture({ type: "image", dataUrl });
   };
@@ -186,11 +206,8 @@ export function Camera() {
     if (!canvas || isRecording) return;
     recordedChunksRef.current = [];
     const stream = canvas.captureStream(30);
-    // Add audio if available
     const audio = streamRef.current?.getAudioTracks();
-    if (audio && audio.length) {
-      stream.addTrack(audio[0]);
-    }
+    if (audio && audio.length) stream.addTrack(audio[0]);
     const mime = MediaRecorder.isTypeSupported("video/webm;codecs=vp9,opus")
       ? "video/webm;codecs=vp9,opus"
       : "video/webm";
@@ -231,24 +248,31 @@ export function Camera() {
   };
 
   return (
-    <div ref={containerRef} className="relative h-dvh w-full overflow-hidden bg-black text-white">
+    <div className="relative h-dvh w-full overflow-hidden bg-black text-white">
       <video ref={videoRef} className="hidden" playsInline muted />
       <canvas
         ref={canvasRef}
         className="absolute inset-0 h-full w-full object-cover"
       />
 
+      {/* Capture flash overlay */}
+      <div
+        ref={flashRef}
+        className="pointer-events-none absolute inset-0 bg-white"
+        style={{ opacity: 0 }}
+      />
+
       {!ready && !error && (
-        <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-black/80 text-center px-6">
-          <div className="text-5xl animate-bounce">🎭</div>
+        <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-black/90 text-center px-6">
+          <div className="text-6xl animate-bounce">🎭</div>
           <p className="text-sm opacity-80">{loadingMessage}</p>
         </div>
       )}
 
       {error && (
-        <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-black/90 px-6 text-center">
+        <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-black/95 px-6 text-center">
           <div className="text-5xl">😕</div>
-          <p className="text-sm opacity-90">{error}</p>
+          <p className="text-sm opacity-90 max-w-xs">{error}</p>
           <button
             onClick={() => startCamera(facing)}
             className="mt-2 rounded-full bg-white px-5 py-2 text-sm font-semibold text-black"
@@ -266,8 +290,9 @@ export function Camera() {
             onOpenCategories={() => setShowCategoryPicker(true)}
             search={search}
             onSearchChange={setSearch}
-            activeFilter={activeFilter}
           />
+
+          <FilterNamePill filter={activeFilter} />
 
           <CategoryBar
             open={showCategoryPicker}
