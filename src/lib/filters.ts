@@ -102,7 +102,12 @@ export function computeFaceFrame(landmarks: Point[], w: number, h: number): Face
 
   const faceWidth = Math.hypot(leftCheek.x - rightCheek.x, leftCheek.y - rightCheek.y);
   const faceHeight = Math.hypot(forehead.x - chin.x, forehead.y - chin.y);
-  const angle = Math.atan2(leftEye.y - rightEye.y, leftEye.x - rightEye.x);
+  // Compute head tilt from the eye line. ROBUST to whether the source is
+  // mirrored or not: always orient from the eye on the LEFT side of the
+  // image to the eye on the RIGHT side, so angle = 0 for a level face.
+  const eA = leftEye.x <= rightEye.x ? leftEye : rightEye;
+  const eB = leftEye.x <= rightEye.x ? rightEye : leftEye;
+  const angle = Math.atan2(eB.y - eA.y, eB.x - eA.x);
   const upVec = { x: (forehead.x - chin.x) / faceHeight, y: (forehead.y - chin.y) / faceHeight };
   const rightVec = { x: Math.cos(angle), y: Math.sin(angle) };
   const headWidth = faceWidth * 1.3;
@@ -396,6 +401,51 @@ function drawTigerStripes(ctx: CanvasRenderingContext2D, f: FaceFrame) {
       ctx.restore();
     }
   }
+  ctx.restore();
+}
+
+/** Generic animal snout: oval muzzle covering nose+mouth area with a darker nose dot at the top. */
+function drawAnimalSnout(
+  ctx: CanvasRenderingContext2D,
+  f: FaceFrame,
+  fur: string,
+  nose: string,
+) {
+  ctx.save();
+  // Position snout centered on the nose tip, extending down to the mouth.
+  const cx = (f.noseTip.x + f.mouthCenter.x) / 2;
+  const cy = (f.noseTip.y + f.mouthCenter.y) / 2;
+  ctx.translate(cx, cy);
+  ctx.rotate(f.angle);
+  const muzzleW = f.faceWidth * 0.32;
+  const muzzleH = f.faceHeight * 0.28;
+  // Furry muzzle
+  const grad = ctx.createRadialGradient(0, 0, muzzleW * 0.2, 0, 0, muzzleW);
+  grad.addColorStop(0, fur);
+  // darker rim by mixing fur with a translucent black
+  grad.addColorStop(1, fur);
+  ctx.fillStyle = grad;
+  ctx.beginPath();
+  ctx.ellipse(0, 0, muzzleW, muzzleH, 0, 0, Math.PI * 2);
+  ctx.fill();
+  // Dark nose (oval black at top of muzzle)
+  const noseY = -muzzleH * 0.55;
+  ctx.fillStyle = nose;
+  ctx.beginPath();
+  ctx.ellipse(0, noseY, muzzleW * 0.28, muzzleH * 0.25, 0, 0, Math.PI * 2);
+  ctx.fill();
+  // Nose highlight
+  ctx.fillStyle = "rgba(255,255,255,0.3)";
+  ctx.beginPath();
+  ctx.ellipse(-muzzleW * 0.1, noseY - muzzleH * 0.05, muzzleW * 0.07, muzzleH * 0.06, 0, 0, Math.PI * 2);
+  ctx.fill();
+  // Mouth line — small vertical stroke from nose down to mouth
+  ctx.strokeStyle = nose;
+  ctx.lineWidth = Math.max(2, f.faceWidth * 0.01);
+  ctx.beginPath();
+  ctx.moveTo(0, noseY + muzzleH * 0.25);
+  ctx.lineTo(0, muzzleH * 0.1);
+  ctx.stroke();
   ctx.restore();
 }
 
@@ -799,7 +849,7 @@ function drawMokotCrown(ctx: CanvasRenderingContext2D, f: FaceFrame) {
   ];
   for (const s of spires) {
     const xPos = s.x * f.faceWidth * 0.16;
-    const h = f.faceHeight * 0.7 * s.scale;
+    const h = f.faceHeight * 0.5 * s.scale;
     const w = f.faceWidth * 0.09 * s.scale;
     const baseY = -bandH * 0.4;
 
@@ -1411,23 +1461,23 @@ export const FILTERS: Filter[] = [
   { id: "bear", name: "Ours", emoji: "🐻", category: "animaux", needsFace: true, render: ({ ctx, frame }) => {
     if (!frame) return;
     drawBearEars(ctx, frame);
-    drawTwemoji(ctx, "🐻", frame.noseTip.x, frame.noseTip.y, frame.faceWidth * 0.32, frame.angle);
+    drawAnimalSnout(ctx, frame, "#6b3e1f", "#3a2410");
   } },
   { id: "fox", name: "Renard", emoji: "🦊", category: "animaux", needsFace: true, render: ({ ctx, frame }) => {
     if (!frame) return;
     drawFoxEars(ctx, frame);
-    drawTwemoji(ctx, "🦊", frame.noseTip.x, frame.noseTip.y, frame.faceWidth * 0.32, frame.angle);
+    drawAnimalSnout(ctx, frame, "#e67e22", "#1a1a1a");
   } },
   { id: "lion", name: "Lion", emoji: "🦁", category: "animaux", needsFace: true, render: ({ ctx, frame }) => {
     if (!frame) return;
     drawLionMane(ctx, frame);
-    drawTwemoji(ctx, "🦁", frame.noseTip.x, frame.noseTip.y, frame.faceWidth * 0.35, frame.angle);
+    drawAnimalSnout(ctx, frame, "#a87045", "#1a1a1a");
   } },
   { id: "tiger", name: "Tigre", emoji: "🐯", category: "animaux", needsFace: true, render: ({ ctx, frame }) => {
     if (!frame) return;
     drawTigerStripes(ctx, frame);
     drawCatEars(ctx, frame, "#d97706");
-    drawTwemoji(ctx, "🐯", frame.noseTip.x, frame.noseTip.y, frame.faceWidth * 0.3, frame.angle);
+    drawAnimalSnout(ctx, frame, "#e67e22", "#5a2a0a");
   } },
   { id: "monkey", name: "Singe", emoji: "🐵", category: "animaux", needsFace: true, render: ({ ctx, frame }) => {
     if (!frame) return;
@@ -1444,7 +1494,7 @@ export const FILTERS: Filter[] = [
       ctx.fill();
     }
     ctx.restore();
-    drawTwemoji(ctx, "🐵", frame.noseTip.x, frame.noseTip.y, frame.faceWidth * 0.3, frame.angle);
+    drawAnimalSnout(ctx, frame, "#c79870", "#3a1f10");
   } },
   { id: "frog", name: "Grenouille", emoji: "🐸", category: "animaux", needsFace: true, render: ({ ctx, frame }) => {
     if (!frame) return;
@@ -1515,7 +1565,7 @@ export const FILTERS: Filter[] = [
       ctx.restore();
     }
     ctx.restore();
-    drawTwemoji(ctx, "🐺", frame.noseTip.x, frame.noseTip.y, frame.faceWidth * 0.3, frame.angle);
+    drawAnimalSnout(ctx, frame, "#7a7a7a", "#1a1a1a");
   } },
 
   // 👑 CHAPEAUX
